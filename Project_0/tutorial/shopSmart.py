@@ -33,7 +33,10 @@ def shopSmart(orderList, fruitShops):
     currentShop = None
     currentCost = None
     
-    
+    # Iterate through all of the fruit shops, and use the getPriceOfOrder()
+    # function to find out how much the order would cost at each shop. Keep
+    # track of the lowest cost and the associated shop, and return the best
+    # one once we have looked at all the shops.
     for fruitShop in fruitShops:
         orderCost = fruitShop.getPriceOfOrder(orderList)
         if currentShop is not None:

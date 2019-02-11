@@ -37,6 +37,10 @@ def buyLotsOfFruit(orderList):
     totalCost = 0.0
     "*** YOUR CODE HERE ***"
     
+    
+    # Iterate through the order list up and find out how much item costs
+    # by multiplying the unit cost for that type of fruit by the weight.
+    # Then, return the total cost by summing the cost of all the items.
     for order in orderList:
         fruitType = order[0]
         if fruitType in fruitPrices:
