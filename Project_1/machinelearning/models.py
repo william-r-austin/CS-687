@@ -76,7 +76,7 @@ class PerceptronModel(object):
             if totalIncorrect == 0:
                 converged = True
             
-class RegressionModel(object):
+class RegressionModelWorking(object):
     """
     A neural network model for approximating a function that maps from real
     numbers to real numbers. The network should be sufficiently large to be able
@@ -317,10 +317,165 @@ class Layer(object):
     Represents a single layer in a neural network.
     """
     
-    def __init__(self, input_size, node_count, output_size):
+    def __init__(self, input_size, output_size, bias_flag, relu_flag):
         #object.__init__(self, *args, **kwargs)
-        self.x = 3
+        self.input_size = input_size
+        self.output_size = output_size
+        self.bias_flag = bias_flag
+        self.relu_flag = relu_flag
+        
+        self.weights = nn.Parameter(self.input_size, self.output_size)
+        self.bias = nn.Parameter(1, self.output_size)
+        
+ 
+class NeuralNetwork(object):
+    
+    def __init__(self, layers, batch_size):
+        self.layers = layers
+        self.batch_size = batch_size        
+        
+    def computeOutputForLayer(self, layer, layer_input):        
+        z = nn.Linear(layer_input, layer.weights)
             
+        if layer.bias_flag:
+            zb = nn.AddBias(z, layer.bias)
+        else:
+            zb = z
+            
+        if layer.relu_flag:
+            a = nn.ReLU(zb)
+        else:
+            a = zb
+        
+        return a
+        
+    def predict(self, x):
+        current_input = x
+        
+        for layer in self.layers:
+            layer_output = self.computeOutputForLayer(layer, current_input)
+            current_input = layer_output
+             
+        return current_input
+    
+    def collectModelParameters(self):
+        paramList = []
+        
+        for layer in self.layers:
+            paramList.append(layer.weights)
+            if layer.bias_flag:
+                paramList.append(layer.bias)
+        
+        return paramList
+
+class RegressionModel(object):
+    """
+    A neural network model for approximating a function that maps from real
+    numbers to real numbers. The network should be sufficiently large to be able
+    to approximate sin(x) on the interval [-2pi, 2pi] to reasonable precision.
+    """
+    def __init__(self):
+        # Initialize your model parameters here
+        "*** YOUR CODE HERE ***"
+        self.layers = []
+        self.layers.append(Layer(1, 5, True, True))
+        self.layers.append(Layer(5, 8, True, True))
+        self.layers.append(Layer(8, 5, True, True))
+        self.layers.append(Layer(5, 3, True, True))
+        self.layers.append(Layer(3, 1, True, False))
+        
+        self.batch_size = 1
+        self.network = NeuralNetwork(self.layers, self.batch_size)
+        self.initial_learning_rate = 0.03
+        self.learning_rate_update = 0.99
+        
+        self.max_loss = 0.02
+
+    def run(self, x):
+        """
+        Runs the model for a batch of examples.
+
+        Inputs:
+            x: a node with shape (batch_size x 1)
+        Returns:
+            A node with shape (batch_size x 1) containing predicted y-values
+        """
+        "*** YOUR CODE HERE ***"
+        return self.network.predict(x)
+
+    def get_loss(self, x, y):
+        """
+        Computes the loss for a batch of examples.
+
+        Inputs:
+            x: a node with shape (batch_size x 1)
+            y: a node with shape (batch_size x 1), containing the true y-values
+                to be used for training
+        Returns: a loss node
+        """
+        "*** YOUR CODE HERE ***"
+        y_predict = self.run(x)
+        return nn.SquareLoss(y_predict, y)
+
+    def train(self, dataset):
+        """
+        Trains the model.
+        """
+        "*** YOUR CODE HERE ***"
+        alpha = self.initial_learning_rate
+        epoch = 1
+        converged = False
+        
+        while not converged:
+            example_count = 0
+            total_loss = 0.0
+            
+            for x, y in dataset.iterate_once(self.batch_size):
+                print("======================================================")
+                print("counter = " + str(example_count))
+                
+                print("x is below: ")
+                x.print_node()
+                
+                print("y is below: ")
+                y.print_node()
+                
+                current_loss = self.get_loss(x, y)
+                
+                total_loss += nn.as_scalar(current_loss)
+                
+                print("Current Loss:")
+                print(nn.as_scalar(current_loss))
+                
+                parameters = self.network.collectModelParameters()
+                
+                step_gradients = nn.gradients(current_loss, parameters)
+                
+                for parameter, gradient in zip(parameters, step_gradients):
+                    parameter.update(gradient, -alpha)
+                
+                print("New Loss:")
+                new_loss = self.get_loss(x, y)
+                print(nn.as_scalar(new_loss))
+                
+                print("Alpha:")
+                print(alpha)
+                
+                print("Epoch:")
+                print(epoch)
+                
+                example_count += 1
+            
+            average_loss = total_loss / example_count
+            
+            print("Average Loss: " + str(average_loss))
+            
+            if average_loss < self.max_loss:
+                converged = True
+            
+            alpha *= self.learning_rate_update
+            epoch += 1
+
 
 class DigitClassificationModel(object):
     """
@@ -339,6 +494,18 @@ class DigitClassificationModel(object):
     def __init__(self):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
+        self.layers = []
+        self.layers.append(Layer(784, 400, True, True))
+        self.layers.append(Layer(400, 80, True, True))
+        self.layers.append(Layer(80, 10, True, True))
+        
+        self.batch_size = 10        
+        self.network = NeuralNetwork(self.layers, self.batch_size)
+
+        self.initial_learning_rate = 0.12
+        self.learning_rate_update = 0.996
+        self.batches_per_update = 10
+        self.batches_per_accuracy_check = 1000
 
     def run(self, x):
         """
@@ -355,6 +522,7 @@ class DigitClassificationModel(object):
                 (also called logits)
         """
         "*** YOUR CODE HERE ***"
+        return self.network.predict(x)
 
     def get_loss(self, x, y):
         """
@@ -370,12 +538,54 @@ class DigitClassificationModel(object):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
+        y_predict = self.run(x)
+        return nn.SoftmaxLoss(y_predict, y)
 
     def train(self, dataset):
         """
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
+        alpha = self.initial_learning_rate
+        epoch = 1
+        converged = False
+        
+        while not converged:
+            total_samples = 0
+            total_batches = 0
+            
+            for x, y in dataset.iterate_once(self.batch_size):
+                print("======================================================")
+                
+                current_loss = self.get_loss(x, y)
+                
+                print("Current Loss:")
+                print(nn.as_scalar(current_loss))
+                
+                parameters = self.network.collectModelParameters()
+                
+                step_gradients = nn.gradients(current_loss, parameters)
+                
+                for parameter, gradient in zip(parameters, step_gradients):
+                    parameter.update(gradient, -alpha)
+                
+                print("Epoch / Alpha:")
+                print(str(epoch) + " / " + str(alpha))
+                
+                total_samples += self.batch_size
+                total_batches += 1
+                
+                if total_batches % self.batches_per_update == 0:
+                    alpha *= self.learning_rate_update
+                
+                if total_batches % self.batches_per_accuracy_check == 0:                    
+                    accuracy = dataset.get_validation_accuracy()
+                    if accuracy > 0.97:
+                        print("Achieved 97% accuracy.")
+                        converged = True
+                        break
+                
+            epoch += 1
 
 class LanguageIDModel(object):
     """
