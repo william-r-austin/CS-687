@@ -326,6 +326,10 @@ class Layer(object):
         
         self.weights = nn.Parameter(self.input_size, self.output_size)
         self.bias = nn.Parameter(1, self.output_size)
+    
+    def resetLayer(self):
+        self.weights = nn.Parameter(self.input_size, self.output_size)
+        self.bias = nn.Parameter(1, self.output_size)
         
  
 class NeuralNetwork(object):
@@ -367,6 +371,10 @@ class NeuralNetwork(object):
                 paramList.append(layer.bias)
         
         return paramList
+    
+    def resetModelParameters(self):
+        for layer in self.layers:
+            layer.resetLayer()
 
 class RegressionModel(object):
     """
@@ -387,7 +395,7 @@ class RegressionModel(object):
         self.batch_size = 1
         self.network = NeuralNetwork(self.layers, self.batch_size)
         self.initial_learning_rate = 0.03
-        self.learning_rate_update = 0.99
+        self.learning_rate_update = 0.995
         
         self.max_loss = 0.02
 
@@ -475,7 +483,11 @@ class RegressionModel(object):
             
             alpha *= self.learning_rate_update
             epoch += 1
-
+            
+            if epoch > 50 and not converged:
+                alpha = self.initial_learning_rate
+                epoch = 1
+                self.network.resetModelParameters()
 
 class DigitClassificationModel(object):
     """
@@ -502,8 +514,8 @@ class DigitClassificationModel(object):
         self.batch_size = 10        
         self.network = NeuralNetwork(self.layers, self.batch_size)
 
-        self.initial_learning_rate = 0.12
-        self.learning_rate_update = 0.996
+        self.initial_learning_rate = 0.2
+        self.learning_rate_update = 0.999
         self.batches_per_update = 10
         self.batches_per_accuracy_check = 1000
 
