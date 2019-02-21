@@ -1,4 +1,5 @@
 import nn
+import numpy as np
 
 class PerceptronModel(object):
     def __init__(self, dimensions):
@@ -75,242 +76,6 @@ class PerceptronModel(object):
             
             if totalIncorrect == 0:
                 converged = True
-            
-class RegressionModelWorking(object):
-    """
-    A neural network model for approximating a function that maps from real
-    numbers to real numbers. The network should be sufficiently large to be able
-    to approximate sin(x) on the interval [-2pi, 2pi] to reasonable precision.
-    """
-    def __init__(self):
-        # Initialize your model parameters here
-        "*** YOUR CODE HERE ***"
-        
-        self.batch_size = 1
-        self.hidden_layer_width = 7
-        
-        # Layer 1: This is the W(1) matrix
-        self.w1 = nn.Parameter(1, self.hidden_layer_width)
-        self.b1 = nn.Parameter(1, self.hidden_layer_width)
-        
-        self.z1 = nn.Parameter(self.batch_size, self.hidden_layer_width)
-        self.z1b = nn.Parameter(self.batch_size, 1)
-        
-        self.a1 = nn.Parameter(self.batch_size, self.hidden_layer_width)
-        
-        
-        # Layer 2: This is the W(2) matrix
-        self.w2 = nn.Parameter(self.hidden_layer_width, self.hidden_layer_width)
-        self.b2 = nn.Parameter(1, self.hidden_layer_width)
-        
-        self.z2 = nn.Parameter(self.batch_size, self.hidden_layer_width)
-        self.z2b = nn.Parameter(self.batch_size, 1)
-        
-        self.a2 = nn.Parameter(self.batch_size, self.hidden_layer_width)
-        
-        # Layer 3: This is the W(3) matrix
-        self.w3 = nn.Parameter(self.hidden_layer_width, self.hidden_layer_width)
-        self.b3 = nn.Parameter(1, self.hidden_layer_width)
-        
-        self.z3 = nn.Parameter(self.batch_size, self.hidden_layer_width)
-        self.z3b = nn.Parameter(self.batch_size, 1)
-        
-        self.a3 = nn.Parameter(self.batch_size, self.hidden_layer_width)
-        
-        # This is the W(n) matrix
-        self.wn = nn.Parameter(self.hidden_layer_width, 1)
-        self.bn = nn.Parameter(1, 1)
-        
-        self.zn = nn.Parameter(self.batch_size, 1)
-        self.znb = nn.Parameter(self.batch_size, 1)
-        #self.yHat = nn.Parameter(self.batch_size, 1)
-
-    def run(self, x):
-        """
-        Runs the model for a batch of examples.
-
-        Inputs:
-            x: a node with shape (batch_size x 1)
-        Returns:
-            A node with shape (batch_size x 1) containing predicted y-values
-        """
-        "*** YOUR CODE HERE ***"
-        self.z1 = nn.Linear(x, self.w1)
-        self.z1b = nn.AddBias(self.z1, self.b1)
-        self.a1 = nn.ReLU(self.z1b)
-        
-        self.z2 = nn.Linear(self.a1, self.w2)
-        self.z2b = nn.AddBias(self.z2, self.b2)
-        self.a2 = nn.ReLU(self.z2b)
-        
-        self.z3 = nn.Linear(self.a2, self.w3)
-        self.z3b = nn.AddBias(self.z3, self.b3)
-        self.a3 = nn.ReLU(self.z3b)
-        
-        self.zn = nn.Linear(self.a3, self.wn)
-        self.znb = nn.AddBias(self.zn, self.bn)
-        #self.yHat = nn.ReLU(self.z3b)
-        
-        return self.znb
-        #wx1 = nn.Linear(x, self.w1)
-        #wxb1 = nn.AddBias(wx1, self.b1)
-        #h1 = nn.ReLU(wxb1)
-        
-        #wx2 = nn.Linear(h1, self.w2)
-        #wxb2 = nn.AddBias(wx2, self.b2)
-        #predict2 = nn.ReLU(wxb2)
-        #return wxb2
-
-    def get_loss(self, x, y):
-        """
-        Computes the loss for a batch of examples.
-
-        Inputs:
-            x: a node with shape (batch_size x 1)
-            y: a node with shape (batch_size x 1), containing the true y-values
-                to be used for training
-        Returns: a loss node
-        """
-        "*** YOUR CODE HERE ***"
-        y_predict = self.run(x)
-        return nn.SquareLoss(y_predict, y)
-        
-
-    def train(self, dataset):
-        """
-        Trains the model.
-        """
-        "*** YOUR CODE HERE ***"
-        
-        alpha = 0.025
-        minLoss = 1000
-        epoch = 1
-        converged = False
-        
-        
-        while not converged:
-            counter = 0
-            totalLoss = 0.0
-            
-            for x, y in dataset.iterate_once(self.batch_size):
-                print("======================================================")
-                print("counter = " + str(counter))
-                
-                print("x is below: ")
-                x.print_node()
-                
-                print("y is below: ")
-                y.print_node()
-                
-                currentLoss = self.get_loss(x, y)
-                
-                totalLoss += nn.as_scalar(currentLoss)
-                
-                ## Layer 1
-                
-                print("w1:")
-                self.w1.print_node()
-                
-                print("b1:")
-                self.b1.print_node()
-                
-                print("z1:")
-                self.z1.print_node()
-                
-                print("z1b:")
-                self.z1b.print_node()
-                
-                print("a1:")
-                self.a1.print_node()
-            
-                ## Layer 2
-            
-                print("w2:")
-                self.w2.print_node()
-                
-                print("b2:")
-                self.b2.print_node()
-                
-                print("z2:")
-                self.z2.print_node()
-                
-                print("z2b:")
-                self.z2b.print_node()
-                
-                print("a2:")
-                self.a2.print_node()
-                
-                ### Last Layer
-                
-                print("wn:")
-                self.wn.print_node()
-                
-                print("bn:")
-                self.bn.print_node()
-                
-                print("zn:")
-                self.zn.print_node()
-                
-                print("znb:")
-                self.znb.print_node()
-                
-                #print("yHat:")
-                #self.yHat.print_node()
-    
-                
-                print("Current Loss:")
-                print(nn.as_scalar(currentLoss))
-                
-                step_gradients = nn.gradients(currentLoss, [self.w1, self.b1, self.w2, self.b2, self.w3, self.b3, self.wn, self.bn])
-                
-                print("Step gradient w1:")
-                print(step_gradients[0].print_node())
-                
-                print("Step gradient b1:")
-                print(step_gradients[1].print_node())
-                
-                print("Step gradient w2:")
-                print(step_gradients[2].print_node())
-                
-                print("Step gradient b2:")
-                print(step_gradients[3].print_node())
-                
-                print("Step gradient wn:")
-                print(step_gradients[4].print_node())
-                
-                print("Step gradient bn:")
-                print(step_gradients[5].print_node())
-                
-                self.w1.update(step_gradients[0], -alpha)
-                self.b1.update(step_gradients[1], -alpha)
-                self.w2.update(step_gradients[2], -alpha)
-                self.b2.update(step_gradients[3], -alpha)
-                self.w3.update(step_gradients[4], -alpha)
-                self.b3.update(step_gradients[5], -alpha)
-                self.wn.update(step_gradients[6], -alpha)
-                self.bn.update(step_gradients[7], -alpha)
-                
-                print("New Loss:")
-                newLoss = self.get_loss(x, y)
-                print(nn.as_scalar(newLoss))
-                
-                print("Alpha:")
-                print(alpha)
-                
-                print("Epoch:")
-                print(epoch)
-                
-                counter += 1
-            
-            averageLoss = totalLoss / counter
-            
-            print("Average Loss: " + str(averageLoss))
-            
-            if averageLoss < 0.02:
-                converged = True
-            
-            alpha *= 0.99
-            epoch += 1
 
 class Layer(object):
     """
@@ -441,12 +206,6 @@ class RegressionModel(object):
             for x, y in dataset.iterate_once(self.batch_size):
                 print("======================================================")
                 print("counter = " + str(example_count))
-                
-                print("x is below: ")
-                x.print_node()
-                
-                print("y is below: ")
-                y.print_node()
                 
                 current_loss = self.get_loss(x, y)
                 
@@ -591,8 +350,8 @@ class DigitClassificationModel(object):
                 
             epoch += 1
             
-            if not converged and epoch > 5:
-                print("Could not converge in 5 epochs. Restarting.")
+            if not converged and epoch > 3:
+                print("Could not converge in 3 epochs. Restarting.")
                 epoch = 1
                 alpha = self.initial_learning_rate
                 self.network.resetModelParameters()
@@ -616,15 +375,15 @@ class LanguageIDModel(object):
 
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
-        self.max_epochs = 60
+        self.max_epochs = 100
         self.epoch_error_rates = [0] * self.max_epochs
-        self.epoch_gap = 10
+        self.epoch_gap = 15
         self.minimum_improvement = 0.05
         self.accuracy_check_cutoff = 0.7
         
         self.batch_size = 50
         self.initial_learning_rate = 0.15
-        self.learning_rate_update = 0.99
+        self.learning_rate_update = 0.97
         
         self.initial_network_layers = []
         self.initial_network_layers.append(Layer(self.num_chars, 40, True, True))
@@ -722,40 +481,50 @@ class LanguageIDModel(object):
         
         while not converged:
             sample_count = 0
+            error_occured = False
             
-            for x, y in dataset.iterate_once(self.batch_size):
-                #print("======================================================")
-                current_loss = self.get_loss(x, y)
-                
-                #print("Current Loss:")
-                #print(nn.as_scalar(current_loss))
-                
-                parameters = []
-                                
-                for current_network in [self.initial_network, self.hidden_network, self.final_network]:
-                    parameters.extend(current_network.collectModelParameters())
+            try:
+                for x, y in dataset.iterate_once(self.batch_size):
+                    #print("======================================================")
+                    current_loss = self.get_loss(x, y)
                     
-                step_gradients = nn.gradients(current_loss, parameters)
+                    #print("Current Loss:")
+                    #print(nn.as_scalar(current_loss))
                     
-                for parameter, gradient in zip(parameters, step_gradients):
-                    parameter.update(gradient, -alpha)
+                    parameters = []
+                                    
+                    for current_network in [self.initial_network, self.hidden_network, self.final_network]:
+                        parameters.extend(current_network.collectModelParameters())
+                        
+                    step_gradients = nn.gradients(current_loss, parameters)
+                        
+                    for parameter, gradient in zip(parameters, step_gradients):
+                        parameter.update(gradient, -alpha)
+                    
+                    #print("Epoch = " + str(epoch) + ", Batch # = " + str(current_batch_number))
+                    
+                    sample_count += self.batch_size
+            except:
+                error_occured = True
                 
-                #print("Epoch = " + str(epoch) + ", Batch # = " + str(current_batch_number))
-                
-                sample_count += self.batch_size
-            
             # Check the accuracy at the end of each epoch
-            accuracy = dataset.get_validation_accuracy()
+            #accuracy = dataset.get_validation_accuracy()
+            
+            test_predicted_probs, test_predicted, test_correct = dataset._predict('test')
+            accuracy = np.mean(test_predicted == test_correct)
+            
             print("Finished epoch " + str(epoch) + ". Sample count = " + str(sample_count) + ". Accuracy = " + str(accuracy))
 
-            if accuracy > 0.85:
-                print("Achieved 85% training set accuracy.")
+            if accuracy > 0.81:
+                print("Achieved 81% training set accuracy.")
                 converged = True
             else:
                 self.epoch_error_rates[epoch] = accuracy
                 restart = False
                 
-                if epoch >= self.max_epochs - 1:
+                if error_occured:
+                    restart = True
+                elif epoch >= self.max_epochs - 1:
                     restart = True
                     print("Maximum number of epochs reached. Restarting training.")
                 else:

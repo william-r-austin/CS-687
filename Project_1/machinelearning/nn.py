@@ -8,8 +8,8 @@ class Node(object):
         return "<{} shape={} at {}>".format(
             type(self).__name__, format_shape(self.data.shape), hex(id(self)))
     
-    def print_node(self):
-        print(self.data)
+#    def print_node(self):
+#        print(self.data)
 
 class DataNode(Node):
     """
