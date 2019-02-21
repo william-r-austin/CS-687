@@ -567,12 +567,7 @@ class DigitClassificationModel(object):
             total_batches = 0
             
             for x, y in dataset.iterate_once(self.batch_size):
-                print("======================================================")
-                
                 current_loss = self.get_loss(x, y)
-                
-                print("Current Loss:")
-                print(nn.as_scalar(current_loss))
                 
                 parameters = self.network.collectModelParameters()
                 
@@ -580,9 +575,6 @@ class DigitClassificationModel(object):
                 
                 for parameter, gradient in zip(parameters, step_gradients):
                     parameter.update(gradient, -alpha)
-                
-                print("Epoch / Alpha:")
-                print(str(epoch) + " / " + str(alpha))
                 
                 total_samples += self.batch_size
                 total_batches += 1
@@ -593,11 +585,17 @@ class DigitClassificationModel(object):
                 if total_batches % self.batches_per_accuracy_check == 0:                    
                     accuracy = dataset.get_validation_accuracy()
                     if accuracy > 0.97:
-                        print("Achieved 97% accuracy.")
+                        print("Achieved 97% accuracy: " + str(accuracy))
                         converged = True
                         break
                 
             epoch += 1
+            
+            if not converged and epoch > 5:
+                print("Could not converge in 5 epochs. Restarting.")
+                epoch = 1
+                alpha = self.initial_learning_rate
+                self.network.resetModelParameters()
 
 class LanguageIDModel(object):
     """
@@ -614,9 +612,38 @@ class LanguageIDModel(object):
         # You can refer to self.num_chars or len(self.languages) in your code
         self.num_chars = 47
         self.languages = ["English", "Spanish", "Finnish", "Dutch", "Polish"]
+        self.num_languages = len(self.languages)
 
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
+        self.max_epochs = 60
+        self.epoch_error_rates = [0] * self.max_epochs
+        self.epoch_gap = 10
+        self.minimum_improvement = 0.05
+        self.accuracy_check_cutoff = 0.7
+        
+        self.batch_size = 50
+        self.initial_learning_rate = 0.15
+        self.learning_rate_update = 0.99
+        
+        self.initial_network_layers = []
+        self.initial_network_layers.append(Layer(self.num_chars, 40, True, True))
+        self.initial_network_layers.append(Layer(40, 35, True, True))
+        
+        self.initial_network = NeuralNetwork(self.initial_network_layers, self.batch_size)
+        
+        self.hidden_network_layers = []
+        self.hidden_network_layers.append(Layer(35, 35, True, True))
+        self.hidden_network_layers.append(Layer(35, 35, True, True))
+        self.hidden_network = NeuralNetwork(self.hidden_network_layers, self.batch_size)
+        
+        self.final_network_layers = []
+        self.final_network_layers.append(Layer(35, 20, True, True))
+        self.final_network_layers.append(Layer(20, 10, True, True))
+        self.final_network_layers.append(Layer(10, self.num_languages, True, True))
+        
+        self.final_network = NeuralNetwork(self.final_network_layers, self.batch_size)
+        
 
     def run(self, xs):
         """
@@ -648,6 +675,23 @@ class LanguageIDModel(object):
                 (also called logits)
         """
         "*** YOUR CODE HERE ***"
+        word_length = len(xs)
+        hidden_output = None
+        current_index = 0
+        
+        while current_index < word_length:
+            initial_output = self.initial_network.predict(xs[current_index])
+            
+            if hidden_output is None:
+                hidden_output = initial_output
+            else:
+                intermediate_output = self.hidden_network.predict(hidden_output)
+                hidden_output = nn.Add(initial_output, intermediate_output)
+                
+            current_index += 1 
+        
+        final_prediction = self.final_network.predict(hidden_output)
+        return final_prediction
 
     def get_loss(self, xs, y):
         """
@@ -664,9 +708,78 @@ class LanguageIDModel(object):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
+        y_predict = self.run(xs)
+        return nn.SoftmaxLoss(y_predict, y)
 
     def train(self, dataset):
         """
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
+        alpha = self.initial_learning_rate
+        epoch = 0
+        converged = False
+        
+        while not converged:
+            sample_count = 0
+            
+            for x, y in dataset.iterate_once(self.batch_size):
+                #print("======================================================")
+                current_loss = self.get_loss(x, y)
+                
+                #print("Current Loss:")
+                #print(nn.as_scalar(current_loss))
+                
+                parameters = []
+                                
+                for current_network in [self.initial_network, self.hidden_network, self.final_network]:
+                    parameters.extend(current_network.collectModelParameters())
+                    
+                step_gradients = nn.gradients(current_loss, parameters)
+                    
+                for parameter, gradient in zip(parameters, step_gradients):
+                    parameter.update(gradient, -alpha)
+                
+                #print("Epoch = " + str(epoch) + ", Batch # = " + str(current_batch_number))
+                
+                sample_count += self.batch_size
+            
+            # Check the accuracy at the end of each epoch
+            accuracy = dataset.get_validation_accuracy()
+            print("Finished epoch " + str(epoch) + ". Sample count = " + str(sample_count) + ". Accuracy = " + str(accuracy))
+
+            if accuracy > 0.85:
+                print("Achieved 85% training set accuracy.")
+                converged = True
+            else:
+                self.epoch_error_rates[epoch] = accuracy
+                restart = False
+                
+                if epoch >= self.max_epochs - 1:
+                    restart = True
+                    print("Maximum number of epochs reached. Restarting training.")
+                else:
+                    if accuracy < self.accuracy_check_cutoff:
+                        old_epoch = epoch - self.epoch_gap
+                        if old_epoch > 0:
+                            old_accuracy = self.epoch_error_rates[old_epoch]
+                            accuracy_difference = accuracy - old_accuracy
+                            #print("Current accuracy/epoch = " + str(accuracy) + "/" + str(epoch) + 
+                            #      ", Old accuracy/epoch = " + str(old_accuracy) + "/" + str(old_epoch) + 
+                            #      ", Difference = " + str(accuracy_difference)) 
+                            
+                            if accuracy_difference < self.minimum_improvement:
+                                restart = True
+                                print("Insufficient model improvement observed. Restarting training.")
+                
+                if restart:
+                    # We are stuck, so reset.
+                    epoch = 0
+                    alpha = self.initial_learning_rate
+                    self.initial_network.resetModelParameters()
+                    self.hidden_network.resetModelParameters()
+                    self.final_network.resetModelParameters()
+                else:
+                    epoch += 1
+                    alpha *= self.learning_rate_update
+    
