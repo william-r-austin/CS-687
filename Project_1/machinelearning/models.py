@@ -341,8 +341,13 @@ class DigitClassificationModel(object):
                 if total_batches % self.batches_per_update == 0:
                     alpha *= self.learning_rate_update
                 
-                if total_batches % self.batches_per_accuracy_check == 0:                    
-                    accuracy = dataset.get_validation_accuracy()
+                if total_batches % self.batches_per_accuracy_check == 0:          
+                    
+                    test_logits = self.run(nn.Constant(dataset.test_images)).data
+                    test_predicted = np.argmax(test_logits, axis=1)
+                    accuracy = np.mean(test_predicted == dataset.test_labels)
+                              
+                    #accuracy = dataset.get_validation_accuracy()
                     if accuracy > 0.97:
                         print("Achieved 97% accuracy: " + str(accuracy))
                         converged = True
