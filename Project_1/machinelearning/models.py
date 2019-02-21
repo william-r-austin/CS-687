@@ -162,7 +162,7 @@ class RegressionModel(object):
         self.initial_learning_rate = 0.03
         self.learning_rate_update = 0.995
         
-        self.max_loss = 0.02
+        self.max_loss = 0.015
 
     def run(self, x):
         """
@@ -343,20 +343,20 @@ class DigitClassificationModel(object):
                 
                 if total_batches % self.batches_per_accuracy_check == 0:          
                     
-                    test_logits = self.run(nn.Constant(dataset.test_images)).data
-                    test_predicted = np.argmax(test_logits, axis=1)
-                    accuracy = np.mean(test_predicted == dataset.test_labels)
+                    #test_logits = self.run(nn.Constant(dataset.test_images)).data
+                    #test_predicted = np.argmax(test_logits, axis=1)
+                    #accuracy = np.mean(test_predicted == dataset.test_labels)
                               
-                    #accuracy = dataset.get_validation_accuracy()
-                    if accuracy > 0.97:
-                        print("Achieved 97% accuracy: " + str(accuracy))
+                    accuracy = dataset.get_validation_accuracy()
+                    if accuracy > 0.98:
+                        print("Achieved 98% accuracy: " + str(accuracy))
                         converged = True
                         break
                 
             epoch += 1
             
-            if not converged and epoch > 3:
-                print("Could not converge in 3 epochs. Restarting.")
+            if not converged and epoch > 4:
+                print("Could not converge in 4 epochs. Restarting.")
                 epoch = 1
                 alpha = self.initial_learning_rate
                 self.network.resetModelParameters()
@@ -513,15 +513,15 @@ class LanguageIDModel(object):
                 error_occured = True
                 
             # Check the accuracy at the end of each epoch
-            #accuracy = dataset.get_validation_accuracy()
+            accuracy = dataset.get_validation_accuracy()
             
-            test_predicted_probs, test_predicted, test_correct = dataset._predict('test')
-            accuracy = np.mean(test_predicted == test_correct)
+            #test_predicted_probs, test_predicted, test_correct = dataset._predict('test')
+            #accuracy = np.mean(test_predicted == test_correct)
             
             print("Finished epoch " + str(epoch) + ". Sample count = " + str(sample_count) + ". Accuracy = " + str(accuracy))
 
-            if accuracy > 0.81:
-                print("Achieved 81% training set accuracy.")
+            if accuracy > 0.86:
+                print("Achieved 86% training set accuracy.")
                 converged = True
             else:
                 self.epoch_error_rates[epoch] = accuracy
