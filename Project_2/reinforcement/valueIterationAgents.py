@@ -195,6 +195,37 @@ class AsynchronousValueIterationAgent(ValueIterationAgent):
 
     def runValueIteration(self):
         "*** YOUR CODE HERE ***"
+        allStates = self.mdp.getStates()
+        stateIndex = 0
+        
+        iteration = 0
+        
+        while iteration < self.iterations:
+            state = allStates[stateIndex]
+            
+            bestValue = None
+            possibleActions = self.mdp.getPossibleActions(state)
+            
+            for action in possibleActions:
+                qValue = self.computeQValueFromValues(state, action)
+                
+                #print("Ugh. Iteration = " + str(iteration) + ", State = " + str(state) + ", Action = " + str(action) + ", Q-value = " + str(qValue))
+                if bestValue is None:
+                    bestValue = qValue
+                else:
+                    if qValue > bestValue:
+                        bestValue = qValue
+            
+            if bestValue is None:
+                bestValue = 0.0
+            
+            self.values[state] = bestValue
+            
+            iteration += 1
+            stateIndex += 1
+            if stateIndex >= len(allStates):
+                stateIndex = 0
+        
 
 class PrioritizedSweepingValueIterationAgent(AsynchronousValueIterationAgent):
     """
@@ -215,4 +246,37 @@ class PrioritizedSweepingValueIterationAgent(AsynchronousValueIterationAgent):
 
     def runValueIteration(self):
         "*** YOUR CODE HERE ***"
+        predecessors = dict()
+        
+        allStates = self.mdp.getStates()
+        
+        for state in allStates:
+            predecessors[state] = []
+        
+        for state in allStates:
+            possibleActions = self.mdp.getPossibleActions(state)
+            
+            for action in possibleActions:
+                transitionInfoList = self.mdp.getTransitionStatesAndProbs(state, action)
+                for transitionInfo in transitionInfoList:
+                    nextState = transitionInfo[0]
+                    nextStateProbability = transitionInfo[1]
+                    
+                    if nextStateProbability > 0:
+                        if state not in predecessors[nextState]:
+                            predecessors[nextState].append(state)
 
+        # Create a new priority queue                    
+        priorityQueue = util.PriorityQueue()
+        
+        for state in allStates:
+            print("Got predecessor states for " + str(state) + ", they are: " + str(predecessors[state]))
+            
+            currentValue = self.values[state]
+            
+            
+        
+
+        
+        for state in allStates:
+            predecessors[state] = []
