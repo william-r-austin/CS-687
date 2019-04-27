@@ -58,6 +58,27 @@ class ValueIterationAgent(ValueEstimationAgent):
         self.iterations = iterations
         self.values = util.Counter() # A Counter is a dict with default 0
         self.runValueIteration()
+    
+    def getBestQValueAndAction(self, state):
+        actionList = self.mdp.getPossibleActions(state)
+        bestQValue = None
+        bestAction = None
+        
+        for action in actionList:
+            actionQValue = self.computeQValueFromValues(state, action)
+            
+            if bestAction is None:
+                bestAction = action
+                bestQValue = actionQValue
+            else:
+                if actionQValue > bestQValue:
+                    bestAction = action
+                    bestQValue = actionQValue
+        
+        if bestQValue is None:
+            bestQValue = 0.0
+        
+        return (bestQValue, bestAction)
 
     def runValueIteration(self):
         # Write value iteration code here
@@ -69,24 +90,8 @@ class ValueIterationAgent(ValueEstimationAgent):
             newValues = util.Counter()
             
             for state in allStates:
-                bestValue = None
-                
-                possibleActions = self.mdp.getPossibleActions(state)
-                
-                for action in possibleActions:
-                    qValue = self.computeQValueFromValues(state, action)
-                    
-                    #print("Ugh. Iteration = " + str(iteration) + ", State = " + str(state) + ", Action = " + str(action) + ", Q-value = " + str(qValue))
-                    if bestValue is None:
-                        bestValue = qValue
-                    else:
-                        if qValue > bestValue:
-                            bestValue = qValue
-                
-                if bestValue is None:
-                    bestValue = 0.0
-                
-                newValues[state] = bestValue
+                qValueTuple = self.getBestQValueAndAction(state)
+                newValues[state] = qValueTuple[0]
             
             #print("Done with iteration " + str(iteration) + ", values are: " + str(self.values))
             iteration += 1
@@ -139,22 +144,8 @@ class ValueIterationAgent(ValueEstimationAgent):
         "*** YOUR CODE HERE ***"
         #util.raiseNotDefined()
         
-        actionList = self.mdp.getPossibleActions(state)
-        bestActionQValue = None
-        bestAction = None
-        
-        for action in actionList:
-            actionQValue = self.computeQValueFromValues(state, action)
-            
-            if bestAction is None:
-                bestAction = action
-                bestActionQValue = actionQValue
-            else:
-                if actionQValue > bestActionQValue:
-                    bestAction = action
-                    bestActionQValue = actionQValue
-        
-        return bestAction
+        qValueTuple = self.getBestQValueAndAction(state)
+        return qValueTuple[1]
 
     def getPolicy(self, state):
         return self.computeActionFromValues(state)
@@ -270,13 +261,35 @@ class PrioritizedSweepingValueIterationAgent(AsynchronousValueIterationAgent):
         priorityQueue = util.PriorityQueue()
         
         for state in allStates:
-            print("Got predecessor states for " + str(state) + ", they are: " + str(predecessors[state]))
+            # print("Got predecessor states for " + str(state) + ", they are: " + str(predecessors[state]))
             
             currentValue = self.values[state]
             
+            bestQValueTuple = self.getBestQValueAndAction(state)
+            bestQValue = bestQValueTuple[0]
             
+            diff = abs(currentValue - bestQValue)
+            
+            priorityQueue.update(state, -1.0 * diff)
         
-
+        iteration = 0
         
-        for state in allStates:
-            predecessors[state] = []
+        while iteration < self.iterations and not priorityQueue.isEmpty():
+            # Pop a state off the queue
+            currentState = priorityQueue.pop()
+            
+            # Update the value for the state
+            currentStateQValueTuple = self.getBestQValueAndAction(currentState)
+            self.values[currentState] = currentStateQValueTuple[0]
+            
+            # Iterate through the predecessors
+            for predecessorState in predecessors[currentState]:
+                predecessorValue = self.values[predecessorState]
+                predecessprQValueTuple = self.getBestQValueAndAction(predecessorState)
+                predecessorQValue = predecessprQValueTuple[0]
+                
+                predecessorValueDiff = abs(predecessorValue - predecessorQValue)
+                if predecessorValueDiff > self.theta:
+                    priorityQueue.update(predecessorState, -1.0 * predecessorValueDiff)
+            
+            iteration += 1    
