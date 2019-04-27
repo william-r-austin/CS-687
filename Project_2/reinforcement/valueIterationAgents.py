@@ -62,7 +62,35 @@ class ValueIterationAgent(ValueEstimationAgent):
     def runValueIteration(self):
         # Write value iteration code here
         "*** YOUR CODE HERE ***"
-
+        iteration = 0
+        
+        while iteration < self.iterations:
+            allStates = self.mdp.getStates()
+            newValues = util.Counter()
+            
+            for state in allStates:
+                bestValue = None
+                
+                possibleActions = self.mdp.getPossibleActions(state)
+                
+                for action in possibleActions:
+                    qValue = self.computeQValueFromValues(state, action)
+                    
+                    #print("Ugh. Iteration = " + str(iteration) + ", State = " + str(state) + ", Action = " + str(action) + ", Q-value = " + str(qValue))
+                    if bestValue is None:
+                        bestValue = qValue
+                    else:
+                        if qValue > bestValue:
+                            bestValue = qValue
+                
+                if bestValue is None:
+                    bestValue = 0.0
+                
+                newValues[state] = bestValue
+            
+            #print("Done with iteration " + str(iteration) + ", values are: " + str(self.values))
+            iteration += 1
+            self.values = newValues
 
     def getValue(self, state):
         """
@@ -77,7 +105,27 @@ class ValueIterationAgent(ValueEstimationAgent):
           value function stored in self.values.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        #util.raiseNotDefined()
+        qValue = 0.0
+        transitionStatesAndProbs = self.mdp.getTransitionStatesAndProbs(state, action)
+        
+        for nextStateAndProb in transitionStatesAndProbs:
+            nextState = nextStateAndProb[0]
+            nextStateProbability = nextStateAndProb[1]
+            
+            nextStateReward = self.mdp.getReward(state, action, nextState)
+            discountedNextStateValue = self.discount * self.values[nextState]
+            
+            weightedValue = nextStateProbability * (nextStateReward + discountedNextStateValue)
+            
+            #print(" Computing Q-value. State = " + str(state) + ", Action = " + str(action) + ", Reward = " + str(nextStateReward) + \
+            #      
+            #      ", nextStateValue = " + str(self.values[nextState]) + ", Discount = " +  str(self.discount) + ", output = " + str(weightedValue))
+            
+            qValue += weightedValue
+        
+        return qValue
+        
 
     def computeActionFromValues(self, state):
         """
@@ -89,7 +137,24 @@ class ValueIterationAgent(ValueEstimationAgent):
           terminal state, you should return None.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        #util.raiseNotDefined()
+        
+        actionList = self.mdp.getPossibleActions(state)
+        bestActionQValue = None
+        bestAction = None
+        
+        for action in actionList:
+            actionQValue = self.computeQValueFromValues(state, action)
+            
+            if bestAction is None:
+                bestAction = action
+                bestActionQValue = actionQValue
+            else:
+                if actionQValue > bestActionQValue:
+                    bestAction = action
+                    bestActionQValue = actionQValue
+        
+        return bestAction
 
     def getPolicy(self, state):
         return self.computeActionFromValues(state)
