@@ -43,6 +43,7 @@ class QLearningAgent(ReinforcementAgent):
         ReinforcementAgent.__init__(self, **args)
 
         "*** YOUR CODE HERE ***"
+        self.qvalues = util.Counter() 
 
     def getQValue(self, state, action):
         """
@@ -51,8 +52,48 @@ class QLearningAgent(ReinforcementAgent):
           or the Q node value otherwise
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        #util.raiseNotDefined()
+        stateActionPair = (state, action)
+        return self.qvalues[stateActionPair]
 
+
+    def getBestActionQValuePair(self, state):
+        bestAction = None
+        bestQValue = 0.0
+        
+        bestActionsList = []
+        possibleActions = self.getLegalActions(state)
+        
+        #print("Computing best action / Q-value. State = " + str(state) + ", Possible Actions = " + str(possibleActions))
+        
+        for action in possibleActions:
+            actionQValue = self.getQValue(state, action)
+            #print("Candidate is: Q-value = " + str(actionQValue) + ", Action = " + str(action))
+            
+            if not bestActionsList:
+                bestActionsList.append(action)
+                bestQValue = actionQValue
+                #print("  -> Result: Added as first list entry.")
+            else:
+                if actionQValue > bestQValue:
+                    bestActionsList.clear()
+                    bestActionsList.append(action)
+                    bestQValue = actionQValue
+                    #print("  -> Result: New best value. Replaced list and added entry.")
+                else:
+                    if math.isclose(bestQValue, actionQValue, rel_tol=1e-7):
+                        bestActionsList.append(action)
+                        #print("  -> Result: Value is tied with best value. Added to list.")
+                    #else:
+                    #    print("  -> Result: Value is sub-optimal.")
+        
+        if len(bestActionsList) > 0:
+            bestAction = random.choice(bestActionsList) 
+
+        #print("List size for best actions was: " + str(len(bestActionsList)))
+        #print("Returning best pair. Q-value = " + str(bestQValue) + ", Action = " + str(bestAction))                
+        bestActionQValuePair = (bestAction, bestQValue)
+        return bestActionQValuePair
 
     def computeValueFromQValues(self, state):
         """
@@ -62,7 +103,10 @@ class QLearningAgent(ReinforcementAgent):
           terminal state, you should return a value of 0.0.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        #util.raiseNotDefined()
+        bestActionQValuePair = self.getBestActionQValuePair(state)
+        return bestActionQValuePair[1]
+        
 
     def computeActionFromQValues(self, state):
         """
@@ -71,7 +115,9 @@ class QLearningAgent(ReinforcementAgent):
           you should return None.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        #util.raiseNotDefined()
+        bestActionQValuePair = self.getBestActionQValuePair(state)
+        return bestActionQValuePair[0]
 
     def getAction(self, state):
         """
@@ -88,7 +134,14 @@ class QLearningAgent(ReinforcementAgent):
         legalActions = self.getLegalActions(state)
         action = None
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        #util.raiseNotDefined()
+        
+        if len(legalActions) > 0:
+            pickRandomAction = util.flipCoin(self.epsilon)
+            if pickRandomAction:
+                action = random.choice(legalActions)
+            else:
+                action = self.computeActionFromQValues(state)
 
         return action
 
@@ -102,8 +155,16 @@ class QLearningAgent(ReinforcementAgent):
           it will be called on your behalf
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
-
+        #util.raiseNotDefined()
+        sampleEstimate = reward + self.discount * self.computeValueFromQValues(nextState)
+        currentQValue = self.getQValue(state, action)
+                
+        #newValue = (1 - self.alpha) * currentQValue + self.alpha * sampleEstimate
+        newValue = currentQValue + self.alpha * (sampleEstimate - currentQValue)
+        
+        stateActionPair = (state, action)
+        self.qvalues[stateActionPair] = newValue
+        
     def getPolicy(self, state):
         return self.computeActionFromQValues(state)
 
